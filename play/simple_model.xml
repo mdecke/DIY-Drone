@@ -1,0 +1,72 @@
+<mujoco model="simple_crane">
+
+  <compiler angle="radian"/>
+  <option timestep="0.002" gravity="0 0 -9.81"/>
+
+  <default>
+    <joint damping="50"/>
+    <geom rgba="0.6 0.6 0.6 1"/>
+  </default>
+
+  <asset>
+    <texture name="grid" type="2d" builtin="checker" rgb1="0.9 0.9 0.9" rgb2="0.7 0.7 0.7" width="512" height="512"/>
+    <material name="ground" texture="grid" texrepeat="5 5"/>
+  </asset>
+
+  <worldbody>
+    <light pos="0 0 6" dir="0 0 -1" diffuse="0.8 0.8 0.8"/>
+    <geom type="plane" size="10 10 0.1" material="ground"/>
+
+    <!-- ─── TOWER (fixed to world) ─── -->
+    <body name="tower" pos="0 0 0">
+      <geom type="cylinder" size="0.15 1.5" pos="0 0 1.5" rgba="0.9 0.7 0.1 1"/>
+
+      <!-- ─── SLEW: rotates the whole upper structure around vertical axis ─── -->
+      <body name="slew_platform" pos="0 0 3.0">
+        <joint name="slew" type="hinge" axis="0 0 1" range="-3.14 3.14"/>
+        <geom type="cylinder" size="0.2 0.1" rgba="0.3 0.3 0.3 1"/>
+
+        <!-- ─── LUFF: tilts the boom up and down ─── -->
+        <body name="boom" pos="0 0 0.1">
+          <joint name="luff" type="hinge" axis="0 1 0" range="0 1.2"/>
+          <geom type="box" size="2.0 0.05 0.08" pos="2.0 0 0" rgba="0.9 0.7 0.1 1"/>
+
+          <!-- ─── HOIST: cable slides down from boom tip ─── -->
+          <body name="trolley" pos="4.0 0 0">
+            <geom type="sphere" size="0.05" rgba="1 0 0 1"/>
+
+            <body name="hook_carrier" pos="0 0 0">
+              <joint name="hoist" type="slide" axis="0 0 -1" range="0 2.5"/>
+              <geom name="cable" type="cylinder" size="0.01 0.5" pos="0 0 -0.5" rgba="0.2 0.2 0.2 1"/>
+
+              <!-- ─── HOOK + LOAD ─── -->
+              <body name="hook" pos="0 0 -1.0">
+                <geom type="sphere" size="0.05" rgba="0.8 0.2 0.2 1"/>
+                <inertial pos="0 0 0" mass="50" diaginertia="0.1 0.1 0.1"/>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+
+  <actuator>
+    <!-- slew stays as torque motor (you're commanding it directly) -->
+    <motor name="slew_motor" joint="slew" gear="500" ctrllimited="true" ctrlrange="-1 1"/>
+
+    <!-- luff and hoist become position servos that hold where you tell them -->
+    <position name="luff_servo" joint="luff" kp="5000" ctrlrange="0 1.2"/>
+    <position name="hoist_servo" joint="hoist" kp="10000" ctrlrange="0 2.5"/>
+  </actuator>
+
+  <sensor>
+    <jointpos name="slew_angle" joint="slew"/>
+    <jointpos name="luff_angle" joint="luff"/>
+    <jointpos name="hoist_pos"  joint="hoist"/>
+    <jointvel name="slew_vel"   joint="slew"/>
+    <jointvel name="luff_vel"   joint="luff"/>
+    <jointvel name="hoist_vel"  joint="hoist"/>
+  </sensor>
+
+</mujoco>
