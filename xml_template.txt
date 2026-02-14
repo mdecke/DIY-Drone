@@ -1,0 +1,94 @@
+<mujoco model="racing_quad">
+
+  <!-- ─── COMPILER: how MJCF is parsed ─── -->
+  <compiler angle="radian" meshdir="../meshes/"/>
+
+  <!-- ─── OPTION: physics settings ─── -->
+  <option timestep="0.001" gravity="0 0 -9.81" integrator="RK4"/>
+
+  <!-- ─── DEFAULT: CSS-like inherited properties ─── -->
+  <default>
+    <!-- anything nested here becomes the default for that element type -->
+    <geom rgba="0.3 0.3 0.3 1"/>
+    <joint damping="0.01"/>
+
+    <!-- named classes for groups of elements -->
+    <default class="motor_prop">
+      <geom type="cylinder" size="0.03 0.005" rgba="0.1 0.1 0.1 1"/>
+    </default>
+  </default>
+
+  <!-- ─── ASSET: meshes, textures, materials ─── -->
+  <asset>
+    <mesh name="frame" file="frame.stl" scale="0.001 0.001 0.001"/>
+    <texture name="grid" type="2d" builtin="checker" rgb1="0.9 0.9 0.9" rgb2="0.7 0.7 0.7" width="512" height="512"/>
+    <material name="ground_mat" texture="grid" texrepeat="5 5"/>
+  </asset>
+
+  <!-- ─── WORLDBODY: the kinematic tree ─── -->
+  <worldbody>
+    <!-- static stuff: ground, lights -->
+    <light pos="0 0 3" dir="0 0 -1" diffuse="0.8 0.8 0.8"/>
+    <geom type="plane" size="10 10 0.1" material="ground_mat"/>
+
+    <!-- your drone -->
+    <body name="base_link" pos="0 0 0.5">
+      <freejoint name="root"/>   <!-- 6-DOF: lets the drone fly freely -->
+      <inertial pos="0 0 0" mass="0.5" diaginertia="0.003 0.003 0.005"/>
+      <geom type="box" size="0.08 0.04 0.01" rgba="0.2 0.2 0.2 1"/>
+
+      <!-- IMU site: place where sensors attach -->
+      <site name="imu" pos="0 0 0.01" size="0.005"/>
+
+      <!-- camera (optional, for FPV or vis) -->
+      <camera name="fpv" pos="0.05 0 0.01" xyaxes="0 -1 0 0 0 1"/>
+
+      <!-- motor 1: front-right -->
+      <body name="motor_fr" pos="0.08 -0.08 0.01">
+        <geom class="motor_prop"/>
+        <site name="thrust_fr" pos="0 0 0.005"/>
+      </body>
+
+      <!-- motor 2: front-left -->
+      <body name="motor_fl" pos="0.08 0.08 0.01">
+        <geom class="motor_prop"/>
+        <site name="thrust_fl" pos="0 0 0.005"/>
+      </body>
+
+      <!-- motor 3: rear-left -->
+      <body name="motor_rl" pos="-0.08 0.08 0.01">
+        <geom class="motor_prop"/>
+        <site name="thrust_rl" pos="0 0 0.005"/>
+      </body>
+
+      <!-- motor 4: rear-right -->
+      <body name="motor_rr" pos="-0.08 -0.08 0.01">
+        <geom class="motor_prop"/>
+        <site name="thrust_rr" pos="0 0 0.005"/>
+      </body>
+    </body>
+  </worldbody>
+
+  <!-- ─── ACTUATOR: how you control the drone ─── -->
+  <actuator>
+    <!-- each motor applies a vertical force at its site -->
+    <motor name="m_fr" site="thrust_fr" gear="0 0 1 0 0 0" ctrllimited="true" ctrlrange="0 4"/>
+    <motor name="m_fl" site="thrust_fl" gear="0 0 1 0 0 0" ctrllimited="true" ctrlrange="0 4"/>
+    <motor name="m_rl" site="thrust_rl" gear="0 0 1 0 0 0" ctrllimited="true" ctrlrange="0 4"/>
+    <motor name="m_rr" site="thrust_rr" gear="0 0 1 0 0 0" ctrllimited="true" ctrlrange="0 4"/>
+  </actuator>
+
+  <!-- ─── SENSOR: what you can measure ─── -->
+  <sensor>
+    <!-- IMU -->
+    <accelerometer name="accel" site="imu" noise="0.01"/>
+    <gyro          name="gyro"  site="imu" noise="0.005"/>
+    <magnetometer  name="mag"   site="imu" noise="0.001"/>
+
+    <!-- ground truth (for EKF validation, not fed to controller) -->
+    <framepos      name="pos_gt"  objtype="site" objname="imu"/>
+    <framequat     name="quat_gt" objtype="site" objname="imu"/>
+    <framelinvel   name="vel_gt"  objtype="site" objname="imu"/>
+  </sensor>
+
+</mujoco>
